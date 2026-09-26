@@ -37,6 +37,7 @@ function parseWikiText(text) {
     if (!text) return '';
     let html = text;
 
+    // Infoboxの処理
     html = html.replace(/\{\{Infobox([\s\S]*?)\}\}/g, (match, p1) => {
         let box = '<div class="infobox">';
         const lines = p1.split('\n');
@@ -56,19 +57,26 @@ function parseWikiText(text) {
         return box;
     });
 
+    // 見出しの処理
     html = html.replace(/^===(.*?)===$/gm, '<h3>$1</h3>');
     html = html.replace(/^==(.*?)==$/gm, '<h2>$1</h2>');
+    
+    // 太字の処理
     html = html.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
     
+    // 画像の処理
     html = html.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
     html = html.replace(/\[\[File:(.+?)\]\]/g, '<img src="$1" style="max-width:100%; height:auto;">');
 
+    // 外部リンクの処理 [http... text]
     html = html.replace(/\[(https?:\/\/[^\s]+)\s+(.*?)\]/g, '<a href="$1" target="_blank" class="external-link">$2</a>');
     
+    // 内部リンクの処理 [[ページ名]]
     html = html.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
         return `<a href="#" class="internal-link" data-target="${p1}">${p1}</a>`;
     });
 
+    // 改行の処理
     html = html.split('\n').map(line => {
         if(line.startsWith('<h') || line.startsWith('<div') || line.trim() === '') return line;
         return line + '<br>';
@@ -77,6 +85,7 @@ function parseWikiText(text) {
     return html;
 }
 
+// === 閲覧モード ===
 async function loadArticle(title) {
     currentArticle = title;
     firstHeading.textContent = title;
@@ -95,7 +104,7 @@ async function loadArticle(title) {
             bodyContent.innerHTML = '<p>このページはまだ存在しません。右上の「編集」をクリックして新規作成してください。</p>';
         }
     } catch (error) {
-        bodyContent.innerHTML = `<p style="color:red; font-weight:bold;">データベースの読み込みに失敗しました。</p><p style="color:red; font-size:0.9em;">Firestoreの設定（ルールやデータベースの作成有無）を確認してください。<br>エラー詳細: ${error.message}</p>`;
+        bodyContent.innerHTML = `<p style="color:red; font-weight:bold;">データベースの読み込みに失敗しました。</p><p style="color:red; font-size:0.9em;">エラー詳細: ${error.message}</p>`;
     }
 }
 
@@ -108,29 +117,34 @@ function attachInternalLinks() {
     });
 }
 
+// === 編集モード ===
 async function openEditor() {
     tabView.classList.remove('selected');
     tabEdit.classList.add('selected');
     firstHeading.textContent = `「${currentArticle}」を編集中`;
-    bodyContent.innerHTML = '読み込み中...';
+    bodyContent.innerHTML = '読み込み中...'; // 一旦ローディング表示
 
     let content = '';
+    
     try {
+        // Firebaseから記事の内容を取得してみる
         const docRef = doc(db, "articles", currentArticle);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            content = docSnap.data().content;
+            content = docSnap.data().content || ''; // 中身があれば代入
         }
     } catch (error) {
         console.error("エディタ読み込みエラー:", error);
+        // エラーが出ても強制的に編集画面は表示させるために、あえてここで処理を止めない
     }
 
+    // 編集画面（エディタ）のHTMLを描画
     bodyContent.innerHTML = `
         <div class="edit-toolbar">
-            <button class="edit-btn" id="btn-bold" title="太字"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg></button>
-            <button class="edit-btn" id="btn-link" title="内部リンク"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
-            <button class="edit-btn" id="btn-extlink" title="外部リンク"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg></button>
-            <button class="edit-btn" id="btn-img" title="画像埋め込み"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>
+            <button class="edit-btn" id="btn-bold" title="太字"><strong>B</strong></button>
+            <button class="edit-btn" id="btn-link" title="内部リンク">リンク</button>
+            <button class="edit-btn" id="btn-extlink" title="外部リンク">外リンク</button>
+            <button class="edit-btn" id="btn-img" title="画像埋め込み">画像</button>
             <button class="edit-btn" id="btn-h2" title="大見出し">H2</button>
             <button class="edit-btn" id="btn-h3" title="中見出し">H3</button>
             <button class="edit-btn" id="btn-infobox" title="インフォボックス">Info</button>
@@ -156,25 +170,37 @@ async function openEditor() {
     document.getElementById('btn-h2').onclick = () => insertText("== ", " ==");
     document.getElementById('btn-h3').onclick = () => insertText("=== ", " ===");
     document.getElementById('btn-infobox').onclick = () => {
-        const tpl = `{{Infobox\n| title = \n| image = \n| section = \n| 生年月日 = \n}}\n`;
+        const tpl = `{{Infobox\n| title = \n| image = \n| section = 基本情報\n| 生年月日 = \n}}\n`;
         insertText(tpl, "");
     };
 
+    // 保存ボタンの処理
     document.getElementById('save-btn').addEventListener('click', async () => {
+        const saveBtn = document.getElementById('save-btn');
+        saveBtn.textContent = '保存中...';
+        saveBtn.disabled = true;
+
         try {
             const newText = textarea.value;
+            // データベースに書き込み
             await setDoc(doc(db, "articles", currentArticle), {
                 content: newText,
                 timestamp: new Date()
             });
+            // 記事一覧リストを更新
             if(!allArticles.includes(currentArticle)) allArticles.push(currentArticle);
+            
+            // 閲覧モードに戻る
             loadArticle(currentArticle);
         } catch (error) {
             alert("保存に失敗しました: " + error.message);
+            saveBtn.textContent = '変更を保存';
+            saveBtn.disabled = false;
         }
     });
 }
 
+// === 検索関連 ===
 function showSearchResults(query) {
     tabView.classList.remove('selected');
     tabEdit.classList.remove('selected');
@@ -241,11 +267,13 @@ searchForm.addEventListener('submit', (e) => {
     }
 });
 
+// === タブとロゴのクリック処理 ===
 tabView.addEventListener('click', (e) => { e.preventDefault(); loadArticle(currentArticle); });
 tabEdit.addEventListener('click', (e) => { e.preventDefault(); openEditor(); });
 document.getElementById('nav-main').addEventListener('click', (e) => { e.preventDefault(); loadArticle('Hajipedia'); });
 document.getElementById('logo-link').addEventListener('click', (e) => { e.preventDefault(); loadArticle('Hajipedia'); });
 
+// === 初期化（起動時にメインページを開く） ===
 fetchAllArticles().then(() => {
     loadArticle('Hajipedia');
 });
