@@ -1,10 +1,8 @@
 body{font-family:sans-serif;margin:0;padding:0;background-color:#f6f6f6;color:#222}
 #mw-page-base{height:5em;background-color:#f6f6f6}
 #mw-head-base{margin-top:-5em;margin-left:11em;height:5em}
-/* content に clearfix の役割を持たせる */
 #content{margin-left:11em;padding:1.25em 1.5em 1.5em 1.5em;background-color:#ffffff;border:1px solid #a7d7f9;border-right:none;border-top:none;min-height:85vh}
 #content::after{content:"";display:block;clear:both}
-
 #firstHeading{border-bottom:1px solid #a2a9b1;padding-bottom:0.25em;margin-top:0;font-family:"Linux Libertine","Georgia","Times",serif;font-weight:normal}
 #mw-head{position:absolute;top:0;right:0;width:100%}
 #p-personal{position:absolute;top:0;right:0.75em;font-size:0.75em}
@@ -35,7 +33,6 @@ body{font-family:sans-serif;margin:0;padding:0;background-color:#f6f6f6;color:#2
 .portal li{margin-bottom:0.2em;font-size:0.75em;padding-left:0.5em}
 .portal li a{color:#0645ad;text-decoration:none}
 .portal li a:hover{text-decoration:underline}
-
 .infobox{float:right;width:300px;background:#f8f9fa;border:1px solid #a2a9b1;padding:0.5em;margin:0 0 1em 1em;font-size:0.9em}
 .infobox img{max-width:100%;height:auto;display:block;margin:0 auto}
 .info-title{text-align:center;font-weight:bold;font-size:1.2em;margin-bottom:0.2em}
@@ -45,29 +42,22 @@ body{font-family:sans-serif;margin:0;padding:0;background-color:#f6f6f6;color:#2
 .info-row{display:flex;border-top:1px solid #eaecf0;padding:0.3em 0}
 .info-th{width:35%;font-weight:bold;padding-right:0.5em}
 .info-td{width:65%}
-
-/* 見出しの修正 (clear:bothを消して、overflow:hiddenで線を制御) */
 h2{border-bottom:1px solid #a2a9b1;padding-bottom:0.25em;font-weight:normal;font-family:"Linux Libertine","Georgia","Times",serif;margin-top:1.5em;overflow:hidden}
 h3{font-weight:bold;margin-top:1.2em;overflow:hidden}
-
 .internal-link, .external-link{color:#0645ad;text-decoration:none}
 .internal-link:hover, .external-link:hover{text-decoration:underline}
 .internal-link:active, .external-link:active{color:#f28b00}
-
 .edit-toolbar{background:#f8f9fa;border:1px solid #c8ccd1;border-bottom:none;padding:0.2em;display:flex;gap:0.5em;align-items:center}
 .edit-btn{background:none;border:1px solid transparent;cursor:pointer;padding:0.3em;border-radius:2px;color:#555}
 .edit-btn:hover{background:#eaecf0;border-color:#c8ccd1}
 #edit-textarea{width:100%;height:60vh;box-sizing:border-box;font-family:monospace;padding:0.5em;border:1px solid #c8ccd1;resize:vertical}
 #save-btn{margin-top:1em;padding:0.5em 1.5em;background:#36c;color:#fff;border:none;border-radius:2px;cursor:pointer;font-weight:bold}
 #save-btn:hover{background:#447ff5}
-.search-result-item{margin-bottom:1em}
-.search-result-item h3{margin:0 0 0.2em 0}
-.search-result-item h3 a{color:#0645ad;text-decoration:none}
-.search-result-item h3 a:hover{text-decoration:underline}
-
-/* インライン画像のスタイル */
+.search-results-list{list-style-type:disc;margin-left:2em}
+.search-result-item{margin-bottom:0.8em}
+.search-result-item a{font-size:1.1em;font-weight:bold;color:#0645ad;text-decoration:none}
+.search-result-item a:hover{text-decoration:underline}
 .inline-image{max-height:1.5em;vertical-align:middle;margin:0 0.2em}
-
 .thumb{border:1px solid #c8ccd1;background-color:#f8f9fa;padding:3px;margin-bottom:0.5em}
 .tright{float:right;clear:right;margin-left:1.4em}
 .tleft{float:left;clear:left;margin-right:1.4em}
