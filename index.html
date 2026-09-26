@@ -1,1 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メインページ - Hajipedia</title>
+    <!-- ファビコンとApple用アイコンの指定 -->
+    <link rel="icon" href="file/icon.png">
+    <link rel="apple-touch-icon" href="file/icon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="mw-page-base"></div>
+    <div id="mw-head-base"></div>
+    
+    <!-- 左サイドバー（ロゴとメニュー） -->
+    <div id="mw-panel">
+        <div id="p-logo">
+            <!-- ロゴ画像（正方形） -->
+            <a href="index.html" style="background-image: url('file/hajipedia.png');"></a>
+        </div>
+        <div class="portal">
+            <div class="body">
+                <ul>
+                    <li id="n-mainpage"><a href="index.html">メインページ</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
+    <!-- 上部ナビゲーション周り -->
+    <div id="mw-head">
+        <!-- 右上のユーザーメニュー -->
+        <div id="p-personal">
+            <ul>
+                <li id="pt-anonuserpage">
+                    <!-- 人型のマーク (SVG) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                    ログインしていません
+                </li>
+                <li id="pt-login"><a href="#">ログイン</a></li>
+            </ul>
+        </div>
+
+        <div id="right-navigation">
+            <!-- 閲覧・編集タブ -->
+            <div id="p-views" class="vectorTabs">
+                <ul>
+                    <li class="selected"><a href="#"><span>閲覧</span></a></li>
+                    <li><a href="#"><span>編集</span></a></li>
+                </ul>
+            </div>
+            
+            <!-- 検索ボックス -->
+            <div id="p-search">
+                <form action="#">
+                    <div id="simpleSearch">
+                        <input type="search" name="search" placeholder="Hajipedia内を検索">
+                        <button type="submit" title="Hajipedia内を検索">
+                            <!-- 虫眼鏡のマーク (SVG) -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div id="content">
+        <h1 id="firstHeading">メインページ</h1>
+        <div id="bodyContent">
+            <p>ここにHajipediaのメインコンテンツを書いていきます。</p>
+        </div>
+    </div>
+</body>
+</html>
