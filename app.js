@@ -25,8 +25,12 @@ const searchSuggest = document.getElementById('search-suggest');
 const searchForm = document.getElementById('search-form');
 
 async function fetchAllArticles() {
-    const snapshot = await getDocs(collection(db, "articles"));
-    allArticles = snapshot.docs.map(doc => doc.id);
+    try {
+        const snapshot = await getDocs(collection(db, "articles"));
+        allArticles = snapshot.docs.map(doc => doc.id);
+    } catch (error) {
+        console.error("記事一覧の取得エラー:", error);
+    }
 }
 
 function parseWikiText(text) {
@@ -80,14 +84,18 @@ async function loadArticle(title) {
     tabEdit.classList.remove('selected');
     bodyContent.innerHTML = '読み込み中...';
 
-    const docRef = doc(db, "articles", title);
-    const docSnap = await getDoc(docRef);
+    try {
+        const docRef = doc(db, "articles", title);
+        const docSnap = await getDoc(docRef);
 
-    if (docSnap.exists()) {
-        bodyContent.innerHTML = parseWikiText(docSnap.data().content);
-        attachInternalLinks();
-    } else {
-        bodyContent.innerHTML = '<p>このページはまだ存在しません。「編集」をクリックして作成してください。</p>';
+        if (docSnap.exists()) {
+            bodyContent.innerHTML = parseWikiText(docSnap.data().content);
+            attachInternalLinks();
+        } else {
+            bodyContent.innerHTML = '<p>このページはまだ存在しません。右上の「編集」をクリックして新規作成してください。</p>';
+        }
+    } catch (error) {
+        bodyContent.innerHTML = `<p style="color:red; font-weight:bold;">データベースの読み込みに失敗しました。</p><p style="color:red; font-size:0.9em;">Firestoreの設定（ルールやデータベースの作成有無）を確認してください。<br>エラー詳細: ${error.message}</p>`;
     }
 }
 
@@ -104,10 +112,18 @@ async function openEditor() {
     tabView.classList.remove('selected');
     tabEdit.classList.add('selected');
     firstHeading.textContent = `「${currentArticle}」を編集中`;
+    bodyContent.innerHTML = '読み込み中...';
 
-    const docRef = doc(db, "articles", currentArticle);
-    const docSnap = await getDoc(docRef);
-    const content = docSnap.exists() ? docSnap.data().content : '';
+    let content = '';
+    try {
+        const docRef = doc(db, "articles", currentArticle);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            content = docSnap.data().content;
+        }
+    } catch (error) {
+        console.error("エディタ読み込みエラー:", error);
+    }
 
     bodyContent.innerHTML = `
         <div class="edit-toolbar">
@@ -145,13 +161,17 @@ async function openEditor() {
     };
 
     document.getElementById('save-btn').addEventListener('click', async () => {
-        const newText = textarea.value;
-        await setDoc(doc(db, "articles", currentArticle), {
-            content: newText,
-            timestamp: new Date()
-        });
-        if(!allArticles.includes(currentArticle)) allArticles.push(currentArticle);
-        loadArticle(currentArticle);
+        try {
+            const newText = textarea.value;
+            await setDoc(doc(db, "articles", currentArticle), {
+                content: newText,
+                timestamp: new Date()
+            });
+            if(!allArticles.includes(currentArticle)) allArticles.push(currentArticle);
+            loadArticle(currentArticle);
+        } catch (error) {
+            alert("保存に失敗しました: " + error.message);
+        }
     });
 }
 
