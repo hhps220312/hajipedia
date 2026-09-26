@@ -211,9 +211,9 @@ function showSearchResults(query) {
     if (results.length === 0) {
         bodyContent.innerHTML = `<p>「${query}」に一致するページは見つかりませんでした。</p><p><a href="#" class="internal-link" data-target="${query}">${query} を新規作成する</a></p>`;
     } else {
-        let html = '<ul>';
+        let html = '<ul class="search-results-list">';
         results.forEach(title => {
-            html += `<li class="search-result-item"><h3><a href="#" class="internal-link" data-target="${title}">${title}</a></h3></li>`;
+            html += `<li class="search-result-item"><a href="#" class="internal-link" data-target="${title}">${title}</a></li>`;
         });
         html += '</ul>';
         bodyContent.innerHTML = html;
