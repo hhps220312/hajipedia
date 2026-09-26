@@ -147,7 +147,8 @@ async function openEditor() {
             <button class="edit-btn" id="btn-bold" title="太字"><strong>B</strong></button>
             <button class="edit-btn" id="btn-link" title="内部リンク">リンク</button>
             <button class="edit-btn" id="btn-extlink" title="外部リンク">外リンク</button>
-            <button class="edit-btn" id="btn-img" title="画像埋め込み">画像</button>
+            <button class="edit-btn" id="btn-img" title="画像(枠あり)">画像</button>
+            <button class="edit-btn" id="btn-img-inline" title="行内画像">行内画像</button>
             <button class="edit-btn" id="btn-h2" title="大見出し">H2</button>
             <button class="edit-btn" id="btn-h3" title="中見出し">H3</button>
             <button class="edit-btn" id="btn-infobox" title="インフォボックス">Info</button>
@@ -170,6 +171,7 @@ async function openEditor() {
     document.getElementById('btn-link').onclick = () => insertText("[[", "]]");
     document.getElementById('btn-extlink').onclick = () => insertText("[", " ]");
     document.getElementById('btn-img').onclick = () => insertText("[[File:", "|thumb|250px|右|画像の説明文]]");
+    document.getElementById('btn-img-inline').onclick = () => insertText("[[File:", "|inline]]");
     document.getElementById('btn-h2').onclick = () => insertText("== ", " ==");
     document.getElementById('btn-h3').onclick = () => insertText("=== ", " ===");
     document.getElementById('btn-infobox').onclick = () => {
