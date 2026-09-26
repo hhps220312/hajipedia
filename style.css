@@ -1,0 +1,154 @@
+/* 全体の基本設定 */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f6f6f6;
+    color: #222;
+}
+
+/* 背景とレイアウトのベース */
+#mw-page-base { height: 5em; background-color: #f6f6f6; }
+#mw-head-base { margin-top: -5em; margin-left: 11em; height: 5em; }
+
+/* コンテンツエリア */
+#content {
+    margin-left: 11em;
+    padding: 1.25em 1.5em 1.5em 1.5em;
+    background-color: #ffffff;
+    border: 1px solid #a7d7f9;
+    border-right: none;
+    border-top: none;
+    min-height: 85vh;
+}
+
+#firstHeading {
+    border-bottom: 1px solid #a2a9b1;
+    padding-bottom: 0.25em;
+    margin-top: 0;
+    font-family: "Linux Libertine", "Georgia", "Times", serif;
+    font-weight: normal;
+}
+
+/* ヘッダー全体 */
+#mw-head {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+}
+
+/* ユーザーメニュー (右上) */
+#p-personal {
+    position: absolute;
+    top: 0;
+    right: 0.75em;
+    font-size: 0.75em;
+}
+#p-personal ul { 
+    list-style: none; 
+    margin: 0; 
+    padding: 0; 
+    display: flex; 
+    align-items: center; 
+}
+#p-personal li { 
+    margin-left: 1em; 
+    display: flex; 
+    align-items: center; 
+    color: #555; 
+    padding-top: 0.5em;
+}
+#p-personal a { color: #0645ad; text-decoration: none; }
+#p-personal a:hover { text-decoration: underline; }
+#pt-anonuserpage svg { margin-right: 4px; color: #555; }
+
+/* ナビゲーションと検索枠 (右下) */
+#right-navigation {
+    float: right;
+    margin-top: 2.5em;
+}
+
+/* タブ (閲覧・編集) */
+#p-views { float: left; margin-right: 0.5em; }
+#p-views ul { list-style: none; margin: 0; padding: 0; display: flex; }
+#p-views li {
+    margin: 0;
+    padding: 0;
+    background-image: linear-gradient(to bottom, #ffffff 0%, #f6f6f6 100%);
+    border: 1px solid #a7d7f9;
+    border-bottom: 0;
+    margin-right: 0.2em;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+#p-views li.selected {
+    background: #ffffff;
+    border-bottom: 1px solid #ffffff;
+    margin-bottom: -1px; /* 下の線を隠す */
+    z-index: 2;
+    position: relative;
+}
+#p-views li a {
+    display: inline-block;
+    padding: 0.8em 1em;
+    color: #0645ad;
+    text-decoration: none;
+    font-size: 0.8em;
+}
+#p-views li.selected a { color: #222; font-weight: bold;}
+
+/* 検索ボックス */
+#p-search { float: left; margin-top: 0.5em; margin-right: 1em; }
+#simpleSearch {
+    background-color: #fff;
+    border: 1px solid #a7d7f9;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    width: 16vw;
+    min-width: 180px;
+}
+#simpleSearch input {
+    border: none;
+    padding: 0.4em 0.6em;
+    width: 100%;
+    outline: none;
+    font-size: 0.8em;
+}
+#simpleSearch button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4em;
+    color: #0645ad;
+}
+
+/* 左サイドバー (ロゴとメニュー) */
+#mw-panel {
+    position: absolute;
+    top: 0;
+    width: 11em;
+    left: 0;
+}
+#p-logo {
+    width: 10em;
+    height: 10em; /* 正方形に設定 */
+    margin: 0 auto 1em auto;
+}
+#p-logo a {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+    text-decoration: none;
+}
+
+/* 左サイドメニュー */
+.portal { margin: 0 0.6em 0 0.7em; }
+.portal ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid #c8ccd1; padding-top: 0.5em;}
+.portal li { margin-bottom: 0.2em; font-size: 0.75em; padding-left: 0.5em;}
+.portal li a { color: #0645ad; text-decoration: none; }
+.portal li a:hover { text-decoration: underline; }
