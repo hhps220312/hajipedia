@@ -29,7 +29,7 @@ async function fetchAllArticles() {
         const snapshot = await getDocs(collection(db, "articles"));
         allArticles = snapshot.docs.map(doc => doc.id);
     } catch (error) {
-        console.error("記事一覧の取得エラー:", error);
+        console.error(error);
     }
 }
 
@@ -37,9 +37,14 @@ function parseWikiText(text) {
     if (!text) return '';
     let html = text;
 
-    // Infoboxの処理
     html = html.replace(/\{\{Infobox([\s\S]*?)\}\}/g, (match, p1) => {
         let box = '<div class="infobox">';
+        let imgHtml = '';
+        let captionHtml = '';
+        let subtitleHtml = '';
+        let rowsHtml = '';
+        let titleHtml = '';
+
         const lines = p1.split('\n');
         lines.forEach(line => {
             const m = line.match(/^\|\s*(.*?)\s*=\s*(.*)$/);
@@ -47,36 +52,39 @@ function parseWikiText(text) {
                 const key = m[1].trim();
                 const val = m[2].trim();
                 if (!val) return;
-                if (key === 'title') box += `<div class="info-title">${val}</div>`;
-                else if (key === 'image') box += `<img src="${val}">`;
-                else if (key === 'section') box += `<div class="info-section">${val}</div>`;
-                else box += `<div class="info-row"><div class="info-th">${key}</div><div class="info-td">${val}</div></div>`;
+                
+                if (key === 'title') titleHtml = `<div class="info-title">${val}</div>`;
+                else if (key === 'subtitle') subtitleHtml = `<div class="info-subtitle">${val}</div>`;
+                else if (key === 'image') imgHtml = `<img src="${val}">`;
+                else if (key === 'caption') captionHtml = `<div class="info-caption">${val}</div>`;
+                else if (key === 'section') rowsHtml += `<div class="info-section">${val}</div>`;
+                else rowsHtml += `<div class="info-row"><div class="info-th">${key}</div><div class="info-td">${val}</div></div>`;
             }
         });
-        box += '</div>';
+        
+        box += titleHtml + subtitleHtml + imgHtml + captionHtml + rowsHtml + '</div>';
         return box;
     });
 
-    // 見出しの処理
     html = html.replace(/^===(.*?)===$/gm, '<h3>$1</h3>');
     html = html.replace(/^==(.*?)==$/gm, '<h2>$1</h2>');
-    
-    // 太字の処理
     html = html.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
     
-    // 画像の処理
-    html = html.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
-    html = html.replace(/\[\[File:(.+?)\]\]/g, '<img src="$1" style="max-width:100%; height:auto;">');
+    html = html.replace(/\[\[File:([^\vert{}\]]+)\Vert{}thumb\Vert{}(\d+px)\Vert{}?(左\vert{}右)?\Vert{}?(.*?)\]\]/g, (match, src, size, align, caption) => {
+        const floatClass = align === '左' ? 'tleft' : 'tright';
+        const capHtml = caption ? `<div class="thumbcaption">${caption}</div>` : '';
+        return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
+    });
 
-    // 外部リンクの処理 [http... text]
+    html = html.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
+    html = html.replace(/\[\[File:([^\vert{}\]]+)\]\]/g, '<img src="$1" style="max-width:100%; height:auto;">');
+
     html = html.replace(/\[(https?:\/\/[^\s]+)\s+(.*?)\]/g, '<a href="$1" target="_blank" class="external-link">$2</a>');
     
-    // 内部リンクの処理 [[ページ名]]
     html = html.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
         return `<a href="#" class="internal-link" data-target="${p1}">${p1}</a>`;
     });
 
-    // 改行の処理
     html = html.split('\n').map(line => {
         if(line.startsWith('<h') || line.startsWith('<div') || line.trim() === '') return line;
         return line + '<br>';
@@ -85,7 +93,6 @@ function parseWikiText(text) {
     return html;
 }
 
-// === 閲覧モード ===
 async function loadArticle(title) {
     currentArticle = title;
     firstHeading.textContent = title;
@@ -117,28 +124,24 @@ function attachInternalLinks() {
     });
 }
 
-// === 編集モード ===
 async function openEditor() {
     tabView.classList.remove('selected');
     tabEdit.classList.add('selected');
     firstHeading.textContent = `「${currentArticle}」を編集中`;
-    bodyContent.innerHTML = '読み込み中...'; // 一旦ローディング表示
+    bodyContent.innerHTML = '読み込み中...'; 
 
     let content = '';
     
     try {
-        // Firebaseから記事の内容を取得してみる
         const docRef = doc(db, "articles", currentArticle);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            content = docSnap.data().content || ''; // 中身があれば代入
+            content = docSnap.data().content || ''; 
         }
     } catch (error) {
-        console.error("エディタ読み込みエラー:", error);
-        // エラーが出ても強制的に編集画面は表示させるために、あえてここで処理を止めない
+        console.error(error);
     }
 
-    // 編集画面（エディタ）のHTMLを描画
     bodyContent.innerHTML = `
         <div class="edit-toolbar">
             <button class="edit-btn" id="btn-bold" title="太字"><strong>B</strong></button>
@@ -166,15 +169,14 @@ async function openEditor() {
     document.getElementById('btn-bold').onclick = () => insertText("'''", "'''");
     document.getElementById('btn-link').onclick = () => insertText("[[", "]]");
     document.getElementById('btn-extlink').onclick = () => insertText("[", " ]");
-    document.getElementById('btn-img').onclick = () => insertText("[[File:", "]]");
+    document.getElementById('btn-img').onclick = () => insertText("[[File:", "|thumb|250px|右|画像の説明文]]");
     document.getElementById('btn-h2').onclick = () => insertText("== ", " ==");
     document.getElementById('btn-h3').onclick = () => insertText("=== ", " ===");
     document.getElementById('btn-infobox').onclick = () => {
-        const tpl = `{{Infobox\n| title = \n| image = \n| section = 基本情報\n| 生年月日 = \n}}\n`;
+        const tpl = `{{Infobox\n| title = \n| subtitle = \n| image = \n| caption = \n| section = 基本情報\n| 項目名1 = \n| 項目名2 = \n}}\n`;
         insertText(tpl, "");
     };
 
-    // 保存ボタンの処理
     document.getElementById('save-btn').addEventListener('click', async () => {
         const saveBtn = document.getElementById('save-btn');
         saveBtn.textContent = '保存中...';
@@ -182,15 +184,12 @@ async function openEditor() {
 
         try {
             const newText = textarea.value;
-            // データベースに書き込み
             await setDoc(doc(db, "articles", currentArticle), {
                 content: newText,
                 timestamp: new Date()
             });
-            // 記事一覧リストを更新
             if(!allArticles.includes(currentArticle)) allArticles.push(currentArticle);
             
-            // 閲覧モードに戻る
             loadArticle(currentArticle);
         } catch (error) {
             alert("保存に失敗しました: " + error.message);
@@ -200,7 +199,6 @@ async function openEditor() {
     });
 }
 
-// === 検索関連 ===
 function showSearchResults(query) {
     tabView.classList.remove('selected');
     tabEdit.classList.remove('selected');
@@ -267,13 +265,11 @@ searchForm.addEventListener('submit', (e) => {
     }
 });
 
-// === タブとロゴのクリック処理 ===
 tabView.addEventListener('click', (e) => { e.preventDefault(); loadArticle(currentArticle); });
 tabEdit.addEventListener('click', (e) => { e.preventDefault(); openEditor(); });
 document.getElementById('nav-main').addEventListener('click', (e) => { e.preventDefault(); loadArticle('Hajipedia'); });
 document.getElementById('logo-link').addEventListener('click', (e) => { e.preventDefault(); loadArticle('Hajipedia'); });
 
-// === 初期化（起動時にメインページを開く） ===
 fetchAllArticles().then(() => {
     loadArticle('Hajipedia');
 });
