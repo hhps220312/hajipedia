@@ -41,8 +41,19 @@ body{font-family:sans-serif;margin:0;padding:0;background-color:#f6f6f6;color:#2
 .info-td{width:70%}
 h2{border-bottom:1px solid #a2a9b1;padding-bottom:0.25em;font-weight:normal;font-family:"Linux Libertine","Georgia","Times",serif;margin-top:1.5em}
 h3{font-weight:bold;margin-top:1.2em}
-.internal-link, .external-link{color:#0645ad;text-decoration:none}
-.internal-link:hover, .external-link:hover{text-decoration:underline}
+
+/* リンクのスタイル指定 */
+.internal-link, .external-link {
+    color: #0645ad;
+    text-decoration: none;
+}
+.internal-link:hover, .external-link:hover {
+    text-decoration: underline;
+}
+.internal-link:active, .external-link:active {
+    color: #f28b00; /* クリック時にオレンジ */
+}
+
 .edit-toolbar{background:#f8f9fa;border:1px solid #c8ccd1;border-bottom:none;padding:0.2em;display:flex;gap:0.5em;align-items:center}
 .edit-btn{background:none;border:1px solid transparent;cursor:pointer;padding:0.3em;border-radius:2px;color:#555}
 .edit-btn:hover{background:#eaecf0;border-color:#c8ccd1}
