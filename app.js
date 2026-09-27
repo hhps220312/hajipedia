@@ -145,17 +145,22 @@ function parseWikiText(text) {
         return table;
     });
 
+    // ▼▼▼ ここから修正箇所 ▼▼▼
+    // H3(===)とH2(==)を1回の正規表現パスで、本文中に出現する順番どおりに処理する。
+    // これにより tocList が H2→H3→H3→H2→H2... のように正しい順序で積まれる。
     const tocList = [];
-    html = html.replace(/^===(.*?)===$/gm, (match, p1) => {
-        const id = 'h3_' + Math.random().toString(36).substr(2, 9);
-        tocList.push({ level: 3, text: processInlineElements(p1.trim()), id: id });
-        return `<h3 id="${id}">${processInlineElements(p1)}</h3>`;
+    html = html.replace(/^(?:===(.*?)===|==(.*?)==)$/gm, (match, h3text, h2text) => {
+        if (h3text !== undefined) {
+            const id = 'h3_' + Math.random().toString(36).substr(2, 9);
+            tocList.push({ level: 3, text: processInlineElements(h3text.trim()), id: id });
+            return `<h3 id="${id}">${processInlineElements(h3text)}</h3>`;
+        } else {
+            const id = 'h2_' + Math.random().toString(36).substr(2, 9);
+            tocList.push({ level: 2, text: processInlineElements(h2text.trim()), id: id });
+            return `<h2 id="${id}">${processInlineElements(h2text)}</h2>`;
+        }
     });
-    html = html.replace(/^==(.*?)==$/gm, (match, p1) => {
-        const id = 'h2_' + Math.random().toString(36).substr(2, 9);
-        tocList.push({ level: 2, text: processInlineElements(p1.trim()), id: id });
-        return `<h2 id="${id}">${processInlineElements(p1)}</h2>`;
-    });
+    // ▲▲▲ ここまで修正箇所 ▲▲▲
 
     if (html.includes('__TOC__')) {
         if (tocList.length > 0) {
