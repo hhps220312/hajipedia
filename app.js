@@ -35,33 +35,21 @@ async function fetchAllArticles() {
 
 function processInlineElements(text) {
     if (!text) return '';
-    let processed = String(text);
-
-    processed = processed.replace(/\[\[\s*File\s*[:：]\s*([^\vert{}\]]+?)\s*\Vert{}\s*inline\s*\]\]/gi, '<img src="$1" class="inline-image">');
-
-    processed = processed.replace(/\[\[\s*(?!File\s*[:：])([^\]]+?)\s*\]\]/gi, (match, target) => {
-        let linkTarget = target;
-        let display = target;
-        if (target.includes('|')) {
-            const parts = target.split('|');
-            linkTarget = parts[0];
-            display = parts[1];
-        }
-        return `<a href="#" class="internal-link" data-target="${linkTarget}">${display}</a>`;
-    });
-
+    // ここにあった \Vert{} を | に修正
+    let processed = text.replace(/\[\[File:(.+?)\Vert{}inline\]\]/gi, '<img src="$1" class="inline-image">');
+    processed = processed.replace(/\[\[(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
     return processed;
 }
 
 function parseWikiText(text) {
     if (!text) return '';
-    let html = String(text);
+    let html = text;
 
     html = html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     html = html.replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/g, '<s>$1</s>');
     html = html.replace(/&lt;span style="color:\s*([^"]+);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
     html = html.replace(/&lt;div class="colored-box" style="([^"]+)"&gt;(.*?)&lt;\/div&gt;/g, '<div class="colored-box" style="$1">$2</div>');
-    html = html.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+    html = html.replace(/&lt;br&gt;/g, '<br>');
 
     html = html.replace(/\{\{Infobox([\s\S]*?)\}\}/g, (match, p1) => {
         let width = '300px';
@@ -90,7 +78,8 @@ function parseWikiText(text) {
             if (item.key === 'title') box += `<div class="info-title">${processedVal}</div>`;
             else if (item.key === 'subtitle') box += `<div class="info-subtitle">${processedVal}</div>`;
             else if (item.key === 'image') {
-                let imgSrc = item.val.replace(/\[\[\s*File\s*[:：]\s*([^\vert{}\]]+?)(?:\Vert{}.*?)?\]\]/gi, '$1').trim();
+                // ここにあった \Vert{} を | に修正
+                let imgSrc = item.val.replace(/\[\[File:(.+?)\Vert{}inline\]\]/gi, '$1').replace(/\[\[File:(.+?)\]\]/gi, '$1').trim();
                 box += `<img src="${imgSrc}">`;
             }
             else if (item.key === 'caption') box += `<div class="info-caption">${processedVal}</div>`;
@@ -119,7 +108,7 @@ function parseWikiText(text) {
         return `<div class="messagebox" style="border-color:${borderColor}; background-color:${bgColor};">${processInlineElements(content)}</div>`;
     });
 
-    html = html.replace(/\{\|\s*class="wikitable"([\s\S]*?)\|\}/g, (match, p1) => {
+    html = html.replace(/\{\| class="wikitable"([\s\S]*?)\|\}/g, (match, p1) => {
         let table = '<table class="wikitable">';
         const rows = p1.trim().split(/\|-/);
         rows.forEach(row => {
@@ -130,7 +119,7 @@ function parseWikiText(text) {
                 cells.forEach(cell => {
                     const cleanCell = cell.replace(/^!/, '').trim();
                     if(cleanCell) {
-                        let styleMatch = cleanCell.match(/style="([^"]*)"\|([\s\S]*)/);
+                        let styleMatch = cleanCell.match(/style="(.*?)"\|(.*)/);
                         if(styleMatch) {
                             table += `<th style="${styleMatch[1]}">${processInlineElements(styleMatch[2].trim())}</th>`;
                         } else {
@@ -143,7 +132,7 @@ function parseWikiText(text) {
                 cells.forEach(cell => {
                     const cleanCell = cell.replace(/^\|/, '').trim();
                     if(cleanCell) {
-                        let styleMatch = cleanCell.match(/style="([^"]*)"\|([\s\S]*)/);
+                        let styleMatch = cleanCell.match(/style="(.*?)"\|(.*)/);
                         if(styleMatch) {
                             table += `<td style="${styleMatch[1]}">${processInlineElements(styleMatch[2].trim())}</td>`;
                         } else {
@@ -159,11 +148,15 @@ function parseWikiText(text) {
     });
 
     const tocList = [];
-    html = html.replace(/^(={2,3})\s*(.*?)\s*\1/gm, (match, equals, title) => {
-        const level = equals.length;
-        const id = 'h' + level + '_' + Math.random().toString(36).substr(2, 9);
-        tocList.push({ level: level, text: processInlineElements(title.trim()), id: id });
-        return `<h${level} id="${id}">${processInlineElements(title.trim())}</h${level}>`;
+    html = html.replace(/^===(.*?)===$/gm, (match, p1) => {
+        const id = 'h3_' + Math.random().toString(36).substr(2, 9);
+        tocList.push({ level: 3, text: processInlineElements(p1.trim()), id: id });
+        return `<h3 id="${id}">${processInlineElements(p1)}</h3>`;
+    });
+    html = html.replace(/^==(.*?)==$/gm, (match, p1) => {
+        const id = 'h2_' + Math.random().toString(36).substr(2, 9);
+        tocList.push({ level: 2, text: processInlineElements(p1.trim()), id: id });
+        return `<h2 id="${id}">${processInlineElements(p1)}</h2>`;
     });
 
     if (html.includes('__TOC__')) {
@@ -186,16 +179,14 @@ function parseWikiText(text) {
 
     html = html.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
     
-    html = html.replace(/\[\[\s*File\s*[:：]\s*([^\vert{}\]]+?)\s*\Vert{}\s*thumb\s*\Vert{}\s*(\d+px)\s*\Vert{}?\s*(左\vert{}右)?\s*\Vert{}?\s*(.*?)\s*\]\]/gi, (match, src, size, align, caption) => {
+    // ここにあった大量の \Vert{} と \vert{} を正しい | に修正
+    html = html.replace(/\[\[File:([^\vert{}\]]+)\Vert{}thumb\Vert{}(\d+px)\Vert{}?(左\vert{}右)?\Vert{}?(.*?)\]\]/g, (match, src, size, align, caption) => {
         const floatClass = align === '左' ? 'tleft' : 'tright';
         const capHtml = caption ? `<div class="thumbcaption">${processInlineElements(caption)}</div>` : '';
         return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
     });
-
-    html = html.replace(/\[\[\s*File\s*[:：]\s*([^\vert{}\]]+?)\s*\]\]/gi, '<img src="$1" style="max-width:100%; height:auto;">');
-
-    html = processInlineElements(html);
     
+    html = processInlineElements(html);
     html = html.replace(/\[(https?:\/\/[^\s]+)\s+(.*?)\]/g, '<a href="$1" target="_blank" class="external-link">$2</a>');
 
     let lines = html.split('\n');
@@ -206,12 +197,12 @@ function parseWikiText(text) {
         let line = lines[i].trimEnd();
         let checkLine = line.trimStart();
         
-        if (checkLine.startsWith('*')) {
+        if (line.startsWith('*')) {
             if (!inList) {
                 finalHtml += '<ul class="wiki-ul">\n';
                 inList = true;
             }
-            finalHtml += `<li>${checkLine.substring(1).trim()}</li>\n`;
+            finalHtml += `<li>${line.substring(1).trim()}</li>\n`;
         } else {
             if (inList) {
                 finalHtml += '</ul>\n';
