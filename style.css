@@ -42,7 +42,7 @@ body{font-family:sans-serif;margin:0;padding:0;background-color:#f6f6f6;color:#2
 .info-row{display:flex;border-top:1px solid #eaecf0;padding:0.3em 0}
 .info-th{width:35%;font-weight:bold;padding-right:0.5em}
 .info-td{width:65%}
-h2{border-bottom:1px solid #a2a9b1;padding-bottom:0.25em;font-weight:normal;font-family:"Linux Libertine","Georgia","Times",serif;margin-top:1.5em;overflow:hidden;clear:both}
+h2{border-bottom:1px solid #a2a9b1;padding-bottom:0.25em;font-weight:normal;font-family:"Linux Libertine","Georgia","Times",serif;margin-top:1.5em;overflow:hidden}
 h3{font-weight:bold;margin-top:1.2em;overflow:hidden}
 .internal-link, .external-link{color:#0645ad;text-decoration:none}
 .internal-link:hover, .external-link:hover{text-decoration:underline}
