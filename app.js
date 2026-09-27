@@ -35,8 +35,7 @@ async function fetchAllArticles() {
 
 function processInlineElements(text) {
     if (!text) return '';
-    // ここにあった \Vert{} を | に修正
-    let processed = text.replace(/\[\[File:(.+?)\Vert{}inline\]\]/gi, '<img src="$1" class="inline-image">');
+    let processed = text.replace(/\[\[File:(.+?)\|inline\]\]/gi, '<img src="$1" class="inline-image">');
     processed = processed.replace(/\[\[(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
     return processed;
 }
@@ -78,8 +77,7 @@ function parseWikiText(text) {
             if (item.key === 'title') box += `<div class="info-title">${processedVal}</div>`;
             else if (item.key === 'subtitle') box += `<div class="info-subtitle">${processedVal}</div>`;
             else if (item.key === 'image') {
-                // ここにあった \Vert{} を | に修正
-                let imgSrc = item.val.replace(/\[\[File:(.+?)\Vert{}inline\]\]/gi, '$1').replace(/\[\[File:(.+?)\]\]/gi, '$1').trim();
+                let imgSrc = item.val.replace(/\[\[File:(.+?)\|inline\]\]/gi, '$1').replace(/\[\[File:(.+?)\]\]/gi, '$1').trim();
                 box += `<img src="${imgSrc}">`;
             }
             else if (item.key === 'caption') box += `<div class="info-caption">${processedVal}</div>`;
@@ -178,14 +176,13 @@ function parseWikiText(text) {
     }
 
     html = html.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
-    
-    // ここにあった大量の \Vert{} と \vert{} を正しい | に修正
-    html = html.replace(/\[\[File:([^\vert{}\]]+)\Vert{}thumb\Vert{}(\d+px)\Vert{}?(左\vert{}右)?\Vert{}?(.*?)\]\]/g, (match, src, size, align, caption) => {
+
+    html = html.replace(/\[\[File:([^|\]]+)\|thumb\|(\d+px)\|?(左|右)?\|?(.*?)\]\]/g, (match, src, size, align, caption) => {
         const floatClass = align === '左' ? 'tleft' : 'tright';
         const capHtml = caption ? `<div class="thumbcaption">${processInlineElements(caption)}</div>` : '';
         return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
     });
-    
+
     html = processInlineElements(html);
     html = html.replace(/\[(https?:\/\/[^\s]+)\s+(.*?)\]/g, '<a href="$1" target="_blank" class="external-link">$2</a>');
 
@@ -196,7 +193,7 @@ function parseWikiText(text) {
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i].trimEnd();
         let checkLine = line.trimStart();
-        
+
         if (line.startsWith('*')) {
             if (!inList) {
                 finalHtml += '<ul class="wiki-ul">\n';
@@ -255,15 +252,15 @@ async function openEditor() {
     tabView.classList.remove('selected');
     tabEdit.classList.add('selected');
     firstHeading.textContent = `「${currentArticle}」を編集中`;
-    bodyContent.innerHTML = '読み込み中...'; 
+    bodyContent.innerHTML = '読み込み中...';
 
     let content = '';
-    
+
     try {
         const docRef = doc(db, "articles", currentArticle);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            content = docSnap.data().content || ''; 
+            content = docSnap.data().content || '';
         }
     } catch (error) {
         console.error(error);
@@ -273,7 +270,7 @@ async function openEditor() {
         <div class="edit-toolbar">
             <button class="edit-btn" id="btn-bold" title="太字"><strong>B</strong></button>
             <button class="edit-btn" id="btn-strike" title="取消線"><s>S</s></button>
-            
+
             <div class="color-picker-group">
                 <span>文字:</span>
                 <button class="color-btn" style="background:#000;" data-cmd="color" data-val="#000" title="黒"></button>
@@ -311,7 +308,7 @@ async function openEditor() {
     `;
 
     const textarea = document.getElementById('edit-textarea');
-    
+
     function insertText(prefix, suffix) {
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
@@ -322,7 +319,7 @@ async function openEditor() {
 
     document.getElementById('btn-bold').onclick = () => insertText("'''", "'''");
     document.getElementById('btn-strike').onclick = () => insertText("<s>", "</s>");
-    
+
     document.querySelectorAll('.color-btn').forEach(btn => {
         btn.onclick = () => {
             const cmd = btn.getAttribute('data-cmd');
@@ -345,7 +342,7 @@ async function openEditor() {
     document.getElementById('btn-h3').onclick = () => insertText("\n=== ", " ===\n");
     document.getElementById('btn-list').onclick = () => insertText("\n* ", "");
     document.getElementById('btn-toc').onclick = () => insertText("__TOC__\n", "");
-    
+
     document.getElementById('btn-table').onclick = () => {
         const tpl = `\n{| class="wikitable"\n! 見出し1 !! 見出し2\n|-\n| style="background: #e6e6fa;"| 色付きセル || データ2\n|-\n| データ3 || データ4\n|}\n`;
         insertText(tpl, "");
@@ -373,7 +370,7 @@ async function openEditor() {
                 timestamp: new Date()
             });
             if(!allArticles.includes(currentArticle)) allArticles.push(currentArticle);
-            
+
             loadArticle(currentArticle);
         } catch (error) {
             alert("保存に失敗しました: " + error.message);
@@ -387,9 +384,9 @@ function showSearchResults(query) {
     tabView.classList.remove('selected');
     tabEdit.classList.remove('selected');
     firstHeading.textContent = `「${query}」の検索結果`;
-    
+
     const results = allArticles.filter(title => title.includes(query));
-    
+
     if (results.length === 0) {
         bodyContent.innerHTML = `<p>「${query}」に一致するページは見つかりませんでした。</p><p><a href="#" class="internal-link" data-target="${query}">${query} を新規作成する</a></p>`;
     } else {
@@ -411,7 +408,7 @@ searchInput.addEventListener('input', () => {
         return;
     }
     const matches = allArticles.filter(title => title.includes(val)).slice(0, 5);
-    
+
     if (matches.length > 0) {
         searchSuggest.innerHTML = matches.map(m => `<li>${m}</li>`).join('');
         searchSuggest.style.display = 'block';
@@ -437,7 +434,7 @@ searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const val = searchInput.value.trim();
     if (!val) return;
-    
+
     const exactMatch = allArticles.find(title => title === val);
     if (exactMatch && allArticles.filter(t => t.includes(val)).length === 1) {
         searchInput.value = '';
