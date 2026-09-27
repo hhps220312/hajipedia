@@ -1,5 +1,5 @@
-import { initializeApp } from "[https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js](https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js)";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "[https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js)";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBq7Op5rLYSmspB1wjW-wg2N1Pz377Y0HU",
@@ -63,12 +63,15 @@ function parseWikiText(text) {
 
         let box = `<div class="infobox" style="width: ${width};">`;
         items.forEach(item => {
-            if (item.key === 'title') box += `<div class="info-title">${item.val}</div>`;
-            else if (item.key === 'subtitle') box += `<div class="info-subtitle">${item.val}</div>`;
-            else if (item.key === 'image') box += `<img src="${item.val}">`;
-            else if (item.key === 'caption') box += `<div class="info-caption">${item.val}</div>`;
-            else if (item.key === 'section') box += `<div class="info-section" style="background-color:${sectionBg}; color:${sectionColor};">${item.val}</div>`;
-            else box += `<div class="info-row"><div class="info-th">${item.key}</div><div class="info-td">${item.val}</div></div>`;
+            let processedVal = item.val.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
+            processedVal = processedVal.replace(/\[\[(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
+
+            if (item.key === 'title') box += `<div class="info-title">${processedVal}</div>`;
+            else if (item.key === 'subtitle') box += `<div class="info-subtitle">${processedVal}</div>`;
+            else if (item.key === 'image') box += `<img src="${processedVal}">`;
+            else if (item.key === 'caption') box += `<div class="info-caption">${processedVal}</div>`;
+            else if (item.key === 'section') box += `<div class="info-section" style="background-color:${sectionBg}; color:${sectionColor};">${processedVal}</div>`;
+            else box += `<div class="info-row"><div class="info-th">${item.key}</div><div class="info-td">${processedVal}</div></div>`;
         });
         box += '</div>';
         return box;
@@ -102,13 +105,27 @@ function parseWikiText(text) {
                 const cells = row.split('!!');
                 cells.forEach(cell => {
                     const cleanCell = cell.replace(/^!/, '').trim();
-                    if(cleanCell) table += `<th>${cleanCell}</th>`;
+                    if(cleanCell) {
+                        let styleMatch = cleanCell.match(/style="(.*?)"\|(.*)/);
+                        if(styleMatch) {
+                            table += `<th style="${styleMatch[1]}">${styleMatch[2].trim()}</th>`;
+                        } else {
+                            table += `<th>${cleanCell}</th>`;
+                        }
+                    }
                 });
             } else {
                 const cells = row.split('||');
                 cells.forEach(cell => {
                     const cleanCell = cell.replace(/^\|/, '').trim();
-                    if(cleanCell) table += `<td>${cleanCell}</td>`;
+                    if(cleanCell) {
+                        let styleMatch = cleanCell.match(/style="(.*?)"\|(.*)/);
+                        if(styleMatch) {
+                            table += `<td style="${styleMatch[1]}">${styleMatch[2].trim()}</td>`;
+                        } else {
+                            table += `<td>${cleanCell}</td>`;
+                        }
+                    }
                 });
             }
             table += '</tr>';
@@ -286,7 +303,7 @@ async function openEditor() {
     document.getElementById('btn-toc').onclick = () => insertText("__TOC__\n", "");
     
     document.getElementById('btn-table').onclick = () => {
-        const tpl = `\n{| class="wikitable"\n! 見出し1 !! 見出し2\n|-\n| データ1 || データ2\n|-\n| データ3 || データ4\n|}\n`;
+        const tpl = `\n{| class="wikitable"\n! 見出し1 !! 見出し2\n|-\n| style="background: #e6e6fa;"| 色付きセル || データ2\n|-\n| データ3 || データ4\n|}\n`;
         insertText(tpl, "");
     };
 
