@@ -1,5 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { initializeApp } from "[https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js](https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js)";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "[https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js)";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBq7Op5rLYSmspB1wjW-wg2N1Pz377Y0HU",
@@ -37,13 +37,16 @@ function parseWikiText(text) {
     if (!text) return '';
     let html = text;
 
+    html = html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    html = html.replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/g, '<s>$1</s>');
+    html = html.replace(/&lt;span style="color:\s*([^"]+);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
+    html = html.replace(/&lt;br&gt;/g, '<br>');
+
     html = html.replace(/\{\{Infobox([\s\S]*?)\}\}/g, (match, p1) => {
-        let box = '<div class="infobox">';
-        let imgHtml = '';
-        let captionHtml = '';
-        let subtitleHtml = '';
-        let rowsHtml = '';
-        let titleHtml = '';
+        let width = '300px';
+        let sectionBg = '#e6e6fa';
+        let sectionColor = '#222';
+        let items = [];
 
         const lines = p1.split('\n');
         lines.forEach(line => {
@@ -51,23 +54,99 @@ function parseWikiText(text) {
             if (m) {
                 const key = m[1].trim();
                 const val = m[2].trim();
-                if (!val) return;
-                
-                if (key === 'title') titleHtml = `<div class="info-title">${val}</div>`;
-                else if (key === 'subtitle') subtitleHtml = `<div class="info-subtitle">${val}</div>`;
-                else if (key === 'image') imgHtml = `<img src="${val}">`;
-                else if (key === 'caption') captionHtml = `<div class="info-caption">${val}</div>`;
-                else if (key === 'section') rowsHtml += `<div class="info-section">${val}</div>`;
-                else rowsHtml += `<div class="info-row"><div class="info-th">${key}</div><div class="info-td">${val}</div></div>`;
+                if (key === 'width') width = val;
+                else if (key === 'section_bg') sectionBg = val;
+                else if (key === 'section_color') sectionColor = val;
+                else if (val) items.push({key, val});
             }
         });
-        
-        box += titleHtml + subtitleHtml + imgHtml + captionHtml + rowsHtml + '</div>';
+
+        let box = `<div class="infobox" style="width: ${width};">`;
+        items.forEach(item => {
+            if (item.key === 'title') box += `<div class="info-title">${item.val}</div>`;
+            else if (item.key === 'subtitle') box += `<div class="info-subtitle">${item.val}</div>`;
+            else if (item.key === 'image') box += `<img src="${item.val}">`;
+            else if (item.key === 'caption') box += `<div class="info-caption">${item.val}</div>`;
+            else if (item.key === 'section') box += `<div class="info-section" style="background-color:${sectionBg}; color:${sectionColor};">${item.val}</div>`;
+            else box += `<div class="info-row"><div class="info-th">${item.key}</div><div class="info-td">${item.val}</div></div>`;
+        });
+        box += '</div>';
         return box;
     });
 
-    html = html.replace(/^===(.*?)===$/gm, '<h3>$1</h3>');
-    html = html.replace(/^==(.*?)==$/gm, '<h2>$1</h2>');
+    html = html.replace(/\{\{MessageBox([\s\S]*?)\}\}/g, (match, p1) => {
+        let borderColor = '#a2a9b1';
+        let bgColor = '#f8f9fa';
+        let content = '';
+        const lines = p1.split('\n');
+        lines.forEach(line => {
+            const m = line.match(/^\|\s*(.*?)\s*=\s*(.*)$/);
+            if (m) {
+                const key = m[1].trim();
+                const val = m[2].trim();
+                if (key === 'border') borderColor = val;
+                else if (key === 'bg') bgColor = val;
+                else if (key === 'text') content = val;
+            }
+        });
+        return `<div class="messagebox" style="border-color:${borderColor}; background-color:${bgColor};">${content}</div>`;
+    });
+
+    html = html.replace(/\{\| class="wikitable"([\s\S]*?)\|\}/g, (match, p1) => {
+        let table = '<table class="wikitable">';
+        const rows = p1.trim().split(/\|-/);
+        rows.forEach(row => {
+            if (!row.trim()) return;
+            table += '<tr>';
+            if (row.includes('!')) {
+                const cells = row.split('!!');
+                cells.forEach(cell => {
+                    const cleanCell = cell.replace(/^!/, '').trim();
+                    if(cleanCell) table += `<th>${cleanCell}</th>`;
+                });
+            } else {
+                const cells = row.split('||');
+                cells.forEach(cell => {
+                    const cleanCell = cell.replace(/^\|/, '').trim();
+                    if(cleanCell) table += `<td>${cleanCell}</td>`;
+                });
+            }
+            table += '</tr>';
+        });
+        table += '</table>';
+        return table;
+    });
+
+    const tocList = [];
+    html = html.replace(/^===(.*?)===$/gm, (match, p1) => {
+        const id = 'h3_' + Math.random().toString(36).substr(2, 9);
+        tocList.push({ level: 3, text: p1.trim(), id: id });
+        return `<h3 id="${id}">${p1}</h3>`;
+    });
+    html = html.replace(/^==(.*?)==$/gm, (match, p1) => {
+        const id = 'h2_' + Math.random().toString(36).substr(2, 9);
+        tocList.push({ level: 2, text: p1.trim(), id: id });
+        return `<h2 id="${id}">${p1}</h2>`;
+    });
+
+    if (html.includes('__TOC__')) {
+        if (tocList.length > 0) {
+            let tocHtml = '<div class="toc"><div class="toc-title">目次</div><ul class="toc-list">';
+            let currentLevel = 2;
+            tocList.forEach((item, index) => {
+                if (item.level > currentLevel) tocHtml += '<ul>';
+                if (item.level < currentLevel) tocHtml += '</ul>';
+                tocHtml += `<li><a href="#${item.id}">${index + 1}. ${item.text}</a></li>`;
+                currentLevel = item.level;
+            });
+            while(currentLevel > 2){ tocHtml += '</ul>'; currentLevel--; }
+            tocHtml += '</ul></div>';
+            html = html.replace('__TOC__', tocHtml);
+        } else {
+            html = html.replace('__TOC__', '');
+        }
+    }
+
     html = html.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
     
     html = html.replace(/\[\[File:([^\vert{}\]]+)\Vert{}thumb\Vert{}(\d+px)\Vert{}?(左\vert{}右)?\Vert{}?(.*?)\]\]/g, (match, src, size, align, caption) => {
@@ -75,7 +154,6 @@ function parseWikiText(text) {
         const capHtml = caption ? `<div class="thumbcaption">${caption}</div>` : '';
         return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
     });
-
     html = html.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
     html = html.replace(/\[\[File:([^\vert{}\]]+)\]\]/g, '<img src="$1" style="max-width:100%; height:auto;">');
 
@@ -85,12 +163,34 @@ function parseWikiText(text) {
         return `<a href="#" class="internal-link" data-target="${p1}">${p1}</a>`;
     });
 
-    html = html.split('\n').map(line => {
-        if(line.startsWith('<h') || line.startsWith('<div') || line.trim() === '') return line;
-        return line + '<br>';
-    }).join('\n');
+    let lines = html.split('\n');
+    let inList = false;
+    let finalHtml = '';
 
-    return html;
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trimEnd();
+        
+        if (line.startsWith('*')) {
+            if (!inList) {
+                finalHtml += '<ul class="wiki-ul">\n';
+                inList = true;
+            }
+            finalHtml += `<li>${line.substring(1).trim()}</li>\n`;
+        } else {
+            if (inList) {
+                finalHtml += '</ul>\n';
+                inList = false;
+            }
+            if (line === '' || line.startsWith('<') || line.startsWith('{|') || line.startsWith('|}') || line.startsWith('|-') || line.startsWith('|') || line.startsWith('!')) {
+                finalHtml += line + '\n';
+            } else {
+                finalHtml += line + '<br>\n';
+            }
+        }
+    }
+    if (inList) finalHtml += '</ul>\n';
+
+    return finalHtml;
 }
 
 async function loadArticle(title) {
@@ -145,12 +245,18 @@ async function openEditor() {
     bodyContent.innerHTML = `
         <div class="edit-toolbar">
             <button class="edit-btn" id="btn-bold" title="太字"><strong>B</strong></button>
+            <button class="edit-btn" id="btn-strike" title="取消線"><s>S</s></button>
+            <button class="edit-btn" id="btn-color" title="文字色">色</button>
             <button class="edit-btn" id="btn-link" title="内部リンク">リンク</button>
             <button class="edit-btn" id="btn-extlink" title="外部リンク">外リンク</button>
             <button class="edit-btn" id="btn-img" title="画像(枠あり)">画像</button>
             <button class="edit-btn" id="btn-img-inline" title="行内画像">行内画像</button>
             <button class="edit-btn" id="btn-h2" title="大見出し">H2</button>
             <button class="edit-btn" id="btn-h3" title="中見出し">H3</button>
+            <button class="edit-btn" id="btn-list" title="箇条書き">リスト</button>
+            <button class="edit-btn" id="btn-table" title="表作成">表</button>
+            <button class="edit-btn" id="btn-msgbox" title="警告枠">枠</button>
+            <button class="edit-btn" id="btn-toc" title="目次">目次</button>
             <button class="edit-btn" id="btn-infobox" title="インフォボックス">Info</button>
         </div>
         <textarea id="edit-textarea">${content}</textarea>
@@ -168,14 +274,29 @@ async function openEditor() {
     }
 
     document.getElementById('btn-bold').onclick = () => insertText("'''", "'''");
+    document.getElementById('btn-strike').onclick = () => insertText("<s>", "</s>");
+    document.getElementById('btn-color').onclick = () => insertText('<span style="color: red;">', '</span>');
     document.getElementById('btn-link').onclick = () => insertText("[[", "]]");
     document.getElementById('btn-extlink').onclick = () => insertText("[", " ]");
     document.getElementById('btn-img').onclick = () => insertText("[[File:", "|thumb|250px|右|画像の説明文]]");
     document.getElementById('btn-img-inline').onclick = () => insertText("[[File:", "|inline]]");
-    document.getElementById('btn-h2').onclick = () => insertText("== ", " ==");
-    document.getElementById('btn-h3').onclick = () => insertText("=== ", " ===");
+    document.getElementById('btn-h2').onclick = () => insertText("\n== ", " ==\n");
+    document.getElementById('btn-h3').onclick = () => insertText("\n=== ", " ===\n");
+    document.getElementById('btn-list').onclick = () => insertText("\n* ", "");
+    document.getElementById('btn-toc').onclick = () => insertText("__TOC__\n", "");
+    
+    document.getElementById('btn-table').onclick = () => {
+        const tpl = `\n{| class="wikitable"\n! 見出し1 !! 見出し2\n|-\n| データ1 || データ2\n|-\n| データ3 || データ4\n|}\n`;
+        insertText(tpl, "");
+    };
+
+    document.getElementById('btn-msgbox').onclick = () => {
+        const tpl = `\n{{MessageBox\n| border = red\n| bg = #ffefef\n| text = 警告メッセージ\n}}\n`;
+        insertText(tpl, "");
+    };
+
     document.getElementById('btn-infobox').onclick = () => {
-        const tpl = `{{Infobox\n| title = \n| subtitle = \n| image = \n| caption = \n| section = 基本情報\n| 項目名1 = \n| 項目名2 = \n}}\n`;
+        const tpl = `{{Infobox\n| width = 300px\n| title = \n| subtitle = \n| image = \n| caption = \n| section_bg = #e6e6fa\n| section_color = #222222\n| section = 基本情報\n| 項目名1 = \n| 項目名2 = \n}}\n`;
         insertText(tpl, "");
     };
 
