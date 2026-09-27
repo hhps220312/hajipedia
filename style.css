@@ -74,7 +74,7 @@ ul.wiki-ul li{margin-bottom:0.2em;line-height:1.5}
 .wikitable{background-color:#f8f9fa;color:#222;margin:1em 0;border:1px solid #a2a9b1;border-collapse:collapse}
 .wikitable th, .wikitable td{border:1px solid #a2a9b1;padding:0.2em 0.4em}
 .wikitable th{background-color:#eaecf0;text-align:center}
-.messagebox{border:2px solid;padding:10px;margin:10px 0;box-sizing:border-box;width:100%}
+.messagebox{border:2px solid;padding:10px;margin:10px 0;box-sizing:border-box;overflow:hidden}
 .colored-box{padding:0.5em;margin:0.5em 0;border:2px solid}
 .toc{display:table;padding:7px;background-color:#f8f9fa;border:1px solid #a2a9b1;font-size:95%;margin-bottom:1em}
 .toc-title{text-align:center;font-weight:bold;margin-bottom:5px}
