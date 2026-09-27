@@ -40,6 +40,128 @@ function processInlineElements(text) {
     return processed;
 }
 
+/* ===== DateCalc: 日付計算関連のヘルパー関数 ===== */
+
+function parseDateStr(str) {
+    if (!str) return null;
+    const m = String(str).trim().match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+    if (!m) return null;
+    const y = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10) - 1;
+    const d = parseInt(m[3], 10);
+    const dt = new Date(Date.UTC(y, mo, d));
+    if (isNaN(dt.getTime())) return null;
+    return dt;
+}
+
+function formatDateJP(dt) {
+    const y = dt.getUTCFullYear();
+    const mo = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(dt.getUTCDate()).padStart(2, '0');
+    return `${y}年${mo}月${d}日`;
+}
+
+function calcAgeYears(start, end) {
+    let age = end.getUTCFullYear() - start.getUTCFullYear();
+    const hasHadAnniversaryThisYear =
+        (end.getUTCMonth() > start.getUTCMonth()) ||
+        (end.getUTCMonth() === start.getUTCMonth() && end.getUTCDate() >= start.getUTCDate());
+    if (!hasHadAnniversaryThisYear) age--;
+    return age;
+}
+
+function calcTotalDays(start, end) {
+    const msPerDay = 24 * 60 * 60 * 1000;
+    return Math.floor((end.getTime() - start.getTime()) / msPerDay);
+}
+
+function calcYMD(start, end) {
+    let years = end.getUTCFullYear() - start.getUTCFullYear();
+    let months = end.getUTCMonth() - start.getUTCMonth();
+    let days = end.getUTCDate() - start.getUTCDate();
+    if (days < 0) {
+        months--;
+        const prevMonthLastDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 0)).getUTCDate();
+        days += prevMonthLastDay;
+    }
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+    return { years, months, days };
+}
+
+// パイプ区切り・改行区切りどちらでも "key=value" を読み取れるパーサー
+// (Infobox/MessageBox内にネストして1行で書いても安全に動くようにするため)
+function parseTemplateParams(paramsText) {
+    const params = {};
+    const segments = paramsText.split(/\||\n/).map(s => s.trim()).filter(s => s.length > 0);
+    segments.forEach(seg => {
+        const m = seg.match(/^(.*?)=(.*)$/);
+        if (m) {
+            params[m[1].trim()] = m[2].trim();
+        }
+    });
+    return params;
+}
+
+function renderDateCalc(paramsText) {
+    const params = parseTemplateParams(paramsText);
+
+    const label = params['label'] || '';
+    const startDate = parseDateStr(params['start']);
+    if (!startDate) return '[DateCalc: startの日付を読み取れませんでした]';
+
+    const isDead = (params['dead'] || '').trim() === 'yes';
+    const mode = (params['mode'] || 'age').trim();
+    const showRange = (params['range'] || '').trim() === 'yes';
+    const unit = params['unit'] || '歳';
+
+    let endDate;
+    let endIsToday = false;
+    if (params['end']) {
+        endDate = parseDateStr(params['end']);
+        if (!endDate) return '[DateCalc: endの日付を読み取れませんでした]';
+    } else {
+        const now = new Date();
+        endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        endIsToday = true;
+    }
+
+    let valueText = '';
+    if (mode === 'age') {
+        const age = calcAgeYears(startDate, endDate);
+        valueText = isDead ? `${age}${unit}没` : `${age}${unit}`;
+    } else if (mode === 'days') {
+        const days = calcTotalDays(startDate, endDate);
+        valueText = `${days}日`;
+    } else if (mode === 'ymd') {
+        const ymd = calcYMD(startDate, endDate);
+        valueText = `${ymd.years}年${ymd.months}ヶ月${ymd.days}日`;
+    } else if (mode === 'days_ymd') {
+        const days = calcTotalDays(startDate, endDate);
+        const ymd = calcYMD(startDate, endDate);
+        valueText = `${days}日 / ${ymd.years}年${ymd.months}ヶ月${ymd.days}日`;
+    } else {
+        valueText = '[DateCalc: modeが不明です]';
+    }
+
+    let out = '';
+    if (label) out += `${label}　`;
+
+    if (showRange) {
+        const endLabel = endIsToday ? '現在' : formatDateJP(endDate);
+        out += `${formatDateJP(startDate)} - ${endLabel}<br>`;
+        out += `（${valueText}）`;
+    } else {
+        out += `${formatDateJP(startDate)}（${valueText}）`;
+    }
+
+    return out;
+}
+
+/* ===== ここまでDateCalc ===== */
+
 function parseWikiText(text) {
     if (!text) return '';
     let html = text;
@@ -49,6 +171,11 @@ function parseWikiText(text) {
     html = html.replace(/&lt;span style="color:\s*([^"]+);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
     html = html.replace(/&lt;div class="colored-box" style="([^"]+)"&gt;([\s\S]*?)&lt;\/div&gt;/g, '<div class="colored-box" style="$1">$2</div>');
     html = html.replace(/&lt;br&gt;/g, '<br>');
+
+    // DateCalcはInfobox/MessageBoxより先に解決する(ネストされても{{ }}の対応が崩れないようにするため)
+    html = html.replace(/\{\{DateCalc([\s\S]*?)\}\}/g, (match, p1) => {
+        return renderDateCalc(p1);
+    });
 
     html = html.replace(/\{\{Infobox([\s\S]*?)\}\}/g, (match, p1) => {
         let width = '300px';
@@ -303,6 +430,7 @@ async function openEditor() {
             <button class="edit-btn" id="btn-msgbox" title="警告枠">枠</button>
             <button class="edit-btn" id="btn-toc" title="目次">目次</button>
             <button class="edit-btn" id="btn-infobox" title="インフォボックス">Info</button>
+            <button class="edit-btn" id="btn-datecalc" title="生年月日・日数などの自動計算">日数計算</button>
         </div>
         <textarea id="edit-textarea">${content}</textarea>
         <button id="save-btn">変更を保存</button>
@@ -356,6 +484,11 @@ async function openEditor() {
 
     document.getElementById('btn-infobox').onclick = () => {
         const tpl = `{{Infobox\n| width = 300px\n| title = \n| subtitle = \n| image = \n| caption = \n| section_bg = #e6e6fa\n| section_color = #222222\n| section = 基本情報\n| 項目名1 = \n| 項目名2 = \n}}\n`;
+        insertText(tpl, "");
+    };
+
+    document.getElementById('btn-datecalc').onclick = () => {
+        const tpl = `{{DateCalc|label=生年月日|start=2000-01-01|mode=age|range=no}}`;
         insertText(tpl, "");
     };
 
