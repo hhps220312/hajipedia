@@ -33,6 +33,13 @@ async function fetchAllArticles() {
     }
 }
 
+function processInlineElements(text) {
+    if (!text) return '';
+    let processed = text.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
+    processed = processed.replace(/\[\[(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
+    return processed;
+}
+
 function parseWikiText(text) {
     if (!text) return '';
     let html = text;
@@ -40,6 +47,7 @@ function parseWikiText(text) {
     html = html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     html = html.replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/g, '<s>$1</s>');
     html = html.replace(/&lt;span style="color:\s*([^"]+);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
+    html = html.replace(/&lt;div class="colored-box" style="([^"]+)"&gt;(.*?)&lt;\/div&gt;/g, '<div class="colored-box" style="$1">$2</div>');
     html = html.replace(/&lt;br&gt;/g, '<br>');
 
     html = html.replace(/\{\{Infobox([\s\S]*?)\}\}/g, (match, p1) => {
@@ -62,16 +70,21 @@ function parseWikiText(text) {
         });
 
         let box = `<div class="infobox" style="width: ${width};">`;
-        items.forEach(item => {
-            let processedVal = item.val.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
-            processedVal = processedVal.replace(/\[\[(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
+        let inSection = false;
+        items.forEach((item, index) => {
+            let processedVal = processInlineElements(item.val);
+            let processedKey = processInlineElements(item.key);
 
             if (item.key === 'title') box += `<div class="info-title">${processedVal}</div>`;
             else if (item.key === 'subtitle') box += `<div class="info-subtitle">${processedVal}</div>`;
-            else if (item.key === 'image') box += `<img src="${processedVal}">`;
+            else if (item.key === 'image') box += `<img src="${item.val.replace(/\[\[File:(.+?)\|inline\]\]/g, '$1')}">`;
             else if (item.key === 'caption') box += `<div class="info-caption">${processedVal}</div>`;
-            else if (item.key === 'section') box += `<div class="info-section" style="background-color:${sectionBg}; color:${sectionColor};">${processedVal}</div>`;
-            else box += `<div class="info-row"><div class="info-th">${item.key}</div><div class="info-td">${processedVal}</div></div>`;
+            else if (item.key === 'section') {
+                box += `<div class="info-section" style="background-color:${sectionBg}; color:${sectionColor};">${processedVal}</div>`;
+            }
+            else {
+                box += `<div class="info-row"><div class="info-th">${processedKey}</div><div class="info-td">${processedVal}</div></div>`;
+            }
         });
         box += '</div>';
         return box;
@@ -92,7 +105,7 @@ function parseWikiText(text) {
                 else if (key === 'text') content = val;
             }
         });
-        return `<div class="messagebox" style="border-color:${borderColor}; background-color:${bgColor};">${content}</div>`;
+        return `<div class="messagebox" style="border-color:${borderColor}; background-color:${bgColor};">${processInlineElements(content)}</div>`;
     });
 
     html = html.replace(/\{\| class="wikitable"([\s\S]*?)\|\}/g, (match, p1) => {
@@ -108,9 +121,9 @@ function parseWikiText(text) {
                     if(cleanCell) {
                         let styleMatch = cleanCell.match(/style="(.*?)"\|(.*)/);
                         if(styleMatch) {
-                            table += `<th style="${styleMatch[1]}">${styleMatch[2].trim()}</th>`;
+                            table += `<th style="${styleMatch[1]}">${processInlineElements(styleMatch[2].trim())}</th>`;
                         } else {
-                            table += `<th>${cleanCell}</th>`;
+                            table += `<th>${processInlineElements(cleanCell)}</th>`;
                         }
                     }
                 });
@@ -121,9 +134,9 @@ function parseWikiText(text) {
                     if(cleanCell) {
                         let styleMatch = cleanCell.match(/style="(.*?)"\|(.*)/);
                         if(styleMatch) {
-                            table += `<td style="${styleMatch[1]}">${styleMatch[2].trim()}</td>`;
+                            table += `<td style="${styleMatch[1]}">${processInlineElements(styleMatch[2].trim())}</td>`;
                         } else {
-                            table += `<td>${cleanCell}</td>`;
+                            table += `<td>${processInlineElements(cleanCell)}</td>`;
                         }
                     }
                 });
@@ -137,13 +150,13 @@ function parseWikiText(text) {
     const tocList = [];
     html = html.replace(/^===(.*?)===$/gm, (match, p1) => {
         const id = 'h3_' + Math.random().toString(36).substr(2, 9);
-        tocList.push({ level: 3, text: p1.trim(), id: id });
-        return `<h3 id="${id}">${p1}</h3>`;
+        tocList.push({ level: 3, text: processInlineElements(p1.trim()), id: id });
+        return `<h3 id="${id}">${processInlineElements(p1)}</h3>`;
     });
     html = html.replace(/^==(.*?)==$/gm, (match, p1) => {
         const id = 'h2_' + Math.random().toString(36).substr(2, 9);
-        tocList.push({ level: 2, text: p1.trim(), id: id });
-        return `<h2 id="${id}">${p1}</h2>`;
+        tocList.push({ level: 2, text: processInlineElements(p1.trim()), id: id });
+        return `<h2 id="${id}">${processInlineElements(p1)}</h2>`;
     });
 
     if (html.includes('__TOC__')) {
@@ -168,17 +181,13 @@ function parseWikiText(text) {
     
     html = html.replace(/\[\[File:([^\vert{}\]]+)\Vert{}thumb\Vert{}(\d+px)\Vert{}?(左\vert{}右)?\Vert{}?(.*?)\]\]/g, (match, src, size, align, caption) => {
         const floatClass = align === '左' ? 'tleft' : 'tright';
-        const capHtml = caption ? `<div class="thumbcaption">${caption}</div>` : '';
+        const capHtml = caption ? `<div class="thumbcaption">${processInlineElements(caption)}</div>` : '';
         return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
     });
-    html = html.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
-    html = html.replace(/\[\[File:([^\vert{}\]]+)\]\]/g, '<img src="$1" style="max-width:100%; height:auto;">');
+    
+    html = processInlineElements(html);
 
     html = html.replace(/\[(https?:\/\/[^\s]+)\s+(.*?)\]/g, '<a href="$1" target="_blank" class="external-link">$2</a>');
-    
-    html = html.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
-        return `<a href="#" class="internal-link" data-target="${p1}">${p1}</a>`;
-    });
 
     let lines = html.split('\n');
     let inList = false;
@@ -263,7 +272,27 @@ async function openEditor() {
         <div class="edit-toolbar">
             <button class="edit-btn" id="btn-bold" title="太字"><strong>B</strong></button>
             <button class="edit-btn" id="btn-strike" title="取消線"><s>S</s></button>
-            <button class="edit-btn" id="btn-color" title="文字色">色</button>
+            
+            <div class="color-picker-group">
+                <span>文字:</span>
+                <button class="color-btn" style="background:#000;" data-cmd="color" data-val="#000" title="黒"></button>
+                <button class="color-btn" style="background:#f00;" data-cmd="color" data-val="#f00" title="赤"></button>
+                <button class="color-btn" style="background:#00f;" data-cmd="color" data-val="#00f" title="青"></button>
+                <button class="color-btn" style="background:#0a0;" data-cmd="color" data-val="#0a0" title="緑"></button>
+                <button class="color-btn" style="background:#fa0;" data-cmd="color" data-val="#fa0" title="オレンジ"></button>
+                <button class="color-btn" style="background:#f0f;" data-cmd="color" data-val="#f0f" title="ピンク"></button>
+                <button class="color-btn" style="background:#808;" data-cmd="color" data-val="#808" title="紫"></button>
+            </div>
+
+            <div class="color-picker-group">
+                <span>枠:</span>
+                <button class="color-btn" style="background:#fff; border-color:#000;" data-cmd="box" data-bg="#fff" data-border="#000" title="黒枠"></button>
+                <button class="color-btn" style="background:#ffe6e6; border-color:#f00;" data-cmd="box" data-bg="#ffe6e6" data-border="#f00" title="赤枠"></button>
+                <button class="color-btn" style="background:#e6f3ff; border-color:#0066cc;" data-cmd="box" data-bg="#e6f3ff" data-border="#0066cc" title="青枠"></button>
+                <button class="color-btn" style="background:#e6ffe6; border-color:#0a0;" data-cmd="box" data-bg="#e6ffe6" data-border="#0a0" title="緑枠"></button>
+                <button class="color-btn" style="background:#ffffe6; border-color:#cc9900;" data-cmd="box" data-bg="#ffffe6" data-border="#cc9900" title="黄枠"></button>
+            </div>
+
             <button class="edit-btn" id="btn-link" title="内部リンク">リンク</button>
             <button class="edit-btn" id="btn-extlink" title="外部リンク">外リンク</button>
             <button class="edit-btn" id="btn-img" title="画像(枠あり)">画像</button>
@@ -292,7 +321,21 @@ async function openEditor() {
 
     document.getElementById('btn-bold').onclick = () => insertText("'''", "'''");
     document.getElementById('btn-strike').onclick = () => insertText("<s>", "</s>");
-    document.getElementById('btn-color').onclick = () => insertText('<span style="color: red;">', '</span>');
+    
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.onclick = () => {
+            const cmd = btn.getAttribute('data-cmd');
+            if (cmd === 'color') {
+                const val = btn.getAttribute('data-val');
+                insertText(`<span style="color: ${val};">`, '</span>');
+            } else if (cmd === 'box') {
+                const bg = btn.getAttribute('data-bg');
+                const border = btn.getAttribute('data-border');
+                insertText(`\n<div class="colored-box" style="background-color: ${bg}; border-color: ${border};">\n`, '\n</div>\n');
+            }
+        };
+    });
+
     document.getElementById('btn-link').onclick = () => insertText("[[", "]]");
     document.getElementById('btn-extlink').onclick = () => insertText("[", " ]");
     document.getElementById('btn-img').onclick = () => insertText("[[File:", "|thumb|250px|右|画像の説明文]]");
