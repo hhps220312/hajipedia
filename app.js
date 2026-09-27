@@ -33,9 +33,18 @@ async function fetchAllArticles() {
     }
 }
 
+// 行内画像・サムネイル画像(枠付き)・通常の内部リンクをまとめて処理する。
+// ここに集約しているので、本文・表のセル・インフォボックスの項目、
+// どこに書いても同じように画像やリンクが変換されるようになっている。
 function processInlineElements(text) {
     if (!text) return '';
-    let processed = text.replace(/\[\[File:(.+?)\|inline\]\]/gi, '<img src="$1" class="inline-image">');
+    let processed = text;
+    processed = processed.replace(/\[\[File:(.+?)\|inline\]\]/gi, '<img src="$1" class="inline-image">');
+    processed = processed.replace(/\[\[File:([^|\]]+)\|thumb\|(\d+px)\|?(左|右)?\|?(.*?)\]\]/g, (match, src, size, align, caption) => {
+        const floatClass = align === '左' ? 'tleft' : 'tright';
+        const capHtml = caption ? `<div class="thumbcaption">${processInlineElements(caption)}</div>` : '';
+        return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
+    });
     processed = processed.replace(/\[\[(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
     return processed;
 }
@@ -304,12 +313,6 @@ function parseWikiText(text) {
     }
 
     html = html.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
-
-    html = html.replace(/\[\[File:([^|\]]+)\|thumb\|(\d+px)\|?(左|右)?\|?(.*?)\]\]/g, (match, src, size, align, caption) => {
-        const floatClass = align === '左' ? 'tleft' : 'tright';
-        const capHtml = caption ? `<div class="thumbcaption">${processInlineElements(caption)}</div>` : '';
-        return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
-    });
 
     html = processInlineElements(html);
     html = html.replace(/\[(https?:\/\/[^\s]+)\s+(.*?)\]/g, '<a href="$1" target="_blank" class="external-link">$2</a>');
