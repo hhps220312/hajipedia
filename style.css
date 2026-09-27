@@ -33,12 +33,12 @@ body{font-family:sans-serif;margin:0;padding:0;background-color:#f6f6f6;color:#2
 .portal li{margin-bottom:0.2em;font-size:0.75em;padding-left:0.5em}
 .portal li a{color:#0645ad;text-decoration:none}
 .portal li a:hover{text-decoration:underline}
-.infobox{float:right;width:300px;background:#f8f9fa;border:1px solid #a2a9b1;padding:0.5em;margin:0 0 1em 1em;font-size:0.9em}
+.infobox{float:right;background:#f8f9fa;border:1px solid #a2a9b1;padding:0.5em;margin:0 0 1em 1em;font-size:0.9em}
 .infobox img{max-width:100%;height:auto;display:block;margin:0 auto}
 .info-title{text-align:center;font-weight:bold;font-size:1.2em;margin-bottom:0.2em}
 .info-subtitle{text-align:center;font-size:0.8em;color:#555;margin-bottom:0.5em}
 .info-caption{text-align:center;font-size:0.8em;color:#333;margin-top:0.3em;margin-bottom:0.5em}
-.info-section{background:#e6e6fa;font-weight:bold;text-align:center;padding:0.3em;margin:0.5em 0}
+.info-section{font-weight:bold;text-align:center;padding:0.3em;margin:0.5em 0}
 .info-row{display:flex;border-top:1px solid #eaecf0;padding:0.3em 0}
 .info-th{width:35%;font-weight:bold;padding-right:0.5em}
 .info-td{width:65%}
@@ -47,8 +47,8 @@ h3{font-weight:bold;margin-top:1.2em;overflow:hidden}
 .internal-link, .external-link{color:#0645ad;text-decoration:none}
 .internal-link:hover, .external-link:hover{text-decoration:underline}
 .internal-link:active, .external-link:active{color:#f28b00}
-.edit-toolbar{background:#f8f9fa;border:1px solid #c8ccd1;border-bottom:none;padding:0.2em;display:flex;gap:0.5em;align-items:center}
-.edit-btn{background:none;border:1px solid transparent;cursor:pointer;padding:0.3em;border-radius:2px;color:#555}
+.edit-toolbar{background:#f8f9fa;border:1px solid #c8ccd1;border-bottom:none;padding:0.2em;display:flex;gap:0.2em;align-items:center;flex-wrap:wrap}
+.edit-btn{background:none;border:1px solid transparent;cursor:pointer;padding:0.3em;border-radius:2px;color:#555;font-size:0.9em}
 .edit-btn:hover{background:#eaecf0;border-color:#c8ccd1}
 #edit-textarea{width:100%;height:60vh;box-sizing:border-box;font-family:monospace;padding:0.5em;border:1px solid #c8ccd1;resize:vertical}
 #save-btn{margin-top:1em;padding:0.5em 1.5em;background:#36c;color:#fff;border:none;border-radius:2px;cursor:pointer;font-weight:bold}
@@ -64,3 +64,27 @@ h3{font-weight:bold;margin-top:1.2em;overflow:hidden}
 .thumbinner{border:1px solid #ccc;background-color:#fff;padding:1px}
 .thumbimage{border:1px solid #ccc;max-width:100%;height:auto}
 .thumbcaption{font-size:0.8em;line-height:1.4em;padding:3px;color:#222;text-align:left}
+del{text-decoration:line-through;color:#555}
+ul.wiki-list{list-style-type:disc;margin:0.3em 0 0.5em 2em;padding:0}
+ul.wiki-list li{margin-bottom:0.2em;line-height:1.5}
+table.wikitable{background-color:#f8f9fa;color:#222;margin:1em 0;border:1px solid #a2a9b1;border-collapse:collapse}
+table.wikitable > tr > th, table.wikitable > tr > td, table.wikitable > * > tr > th, table.wikitable > * > tr > td{border:1px solid #a2a9b1;padding:0.2em 0.4em}
+table.wikitable > tr > th, table.wikitable > * > tr > th{backgroundたくさんのご要望、ありがとうございます！ますます本格的なWikiになってきましたね。
+今回は、表現力を大幅にアップさせるための記法をたくさん追加し、さらにエディタがフリーズしてしまう重い処理（改行の自動変換など）を最適化してサクサク動くように改良しました。
+
+今回のアップデート内容と新しい書き方（Wiki記法）のまとめです。
+
+### 1. Infobox（右側のリスト）の強化
+*   **改行:** `<br>` と書くことで改行できるようになりました。（例: `| 委員長代行 = [[川瀬あお葉]]<br>[[本谷元]]`）
+*   **セクション内の画像:** セクションのタイトル（第78代など）に画像を入れる場合は、本文と同じようにインライン画像を使えます。（例: `| section = [[File:file/logo.png|inline]] 第78代`）
+*   **幅・色の変更:** 基本は今まで通りですが、色や幅を変えたい場合は以下のように指定できます。
+    *   `| width = 400px` （リスト全体の横幅を変える）
+    *   `| section_bg = #000000` （セクションの背景色を変える）
+    *   `| section_color = #ffffff` （セクションの文字色を変える）
+
+### 2. 箇条書きリスト（本文中の点）
+行の先頭に `*`（アスタリスク）を書くと、黒い点のリストになります。
+```text
+* これは1つ目のリストです。
+* これが2つ目です。
+この行は普通の文章ですが、開始位置はリストの下ではなく一番左端に戻ります。
