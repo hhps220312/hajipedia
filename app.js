@@ -35,10 +35,10 @@ async function fetchAllArticles() {
 
 function processInlineElements(text) {
     if (!text) return '';
-    // 画像の処理（\|を正しく認識させる）
-    let processed = text.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
-    // 内部リンクの処理（ただし [[File:...]] はリンク化しないように除外）
-    processed = processed.replace(/\[\[(?!File:)(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
+    // 行内画像の処理（大文字小文字、全角縦線「｜」、スペースの混入を全て許容）
+    let processed = text.replace(/\[\[[Ff][Ii][Ll][Ee]:\s*(.*?)\s*[\Vert{}｜]\s*inline\s*\]\]/g, '<img src="$1" class="inline-image">');
+    // 内部リンクの処理（File: 画像はリンク化から除外）
+    processed = processed.replace(/\[\[(?![Ff][Ii][Ll][Ee]:)(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
     return processed;
 }
 
@@ -50,7 +50,7 @@ function parseWikiText(text) {
     html = html.replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/g, '<s>$1</s>');
     html = html.replace(/&lt;span style="color:\s*([^"]+);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
     
-    // 色枠の処理（[\s\S]*? に変更して、改行を跨いで中身を認識できるように修正）
+    // 色枠の処理
     html = html.replace(/&lt;div class="colored-box" style="([^"]+)"&gt;([\s\S]*?)&lt;\/div&gt;/g, '<div class="colored-box" style="$1">$2</div>');
     html = html.replace(/&lt;br&gt;/g, '<br>');
 
@@ -81,7 +81,15 @@ function parseWikiText(text) {
 
             if (item.key === 'title') box += `<div class="info-title">${processedVal}</div>`;
             else if (item.key === 'subtitle') box += `<div class="info-subtitle">${processedVal}</div>`;
-            else if (item.key === 'image') box += `<img src="${item.val.replace(/\[\[File:(.+?)\|inline\]\]/g, '$1')}">`;
+            else if (item.key === 'image') {
+                // インフォボックス内の画像指定が [[File:...]] 形式でもURLだけでも対応
+                let imgUrl = item.val;
+                let matchFile = item.val.match(/\[\[[Ff][Ii][Ll][Ee]:\s*([^\vert{}｜\]]+)/);
+                if (matchFile) {
+                    imgUrl = matchFile[1].trim();
+                }
+                box += `<img src="${imgUrl}">`;
+            }
             else if (item.key === 'caption') box += `<div class="info-caption">${processedVal}</div>`;
             else if (item.key === 'section') {
                 box += `<div class="info-section" style="background-color:${sectionBg}; color:${sectionColor};">${processedVal}</div>`;
@@ -151,10 +159,10 @@ function parseWikiText(text) {
         return table;
     });
 
-    // 目次と見出しの処理（上から順に処理するように一本化）
+    // 目次と見出しの処理
     const tocList = [];
     html = html.replace(/^(={2,3})\s*(.*?)\s*\1/gm, (match, equals, p1) => {
-        const level = equals.length; // 2ならH2、3ならH3
+        const level = equals.length; 
         const id = 'h' + level + '_' + Math.random().toString(36).substr(2, 9);
         tocList.push({ level: level, text: processInlineElements(p1), id: id });
         return `<h${level} id="${id}">${processInlineElements(p1)}</h${level}>`;
@@ -180,11 +188,11 @@ function parseWikiText(text) {
 
     html = html.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
     
-    // 枠付き画像(thumb)の処理（正規表現を修正）
-    html = html.replace(/\[\[File:([^\vert{}\]]+)\Vert{}thumb\Vert{}(\d+px)(?:\Vert{}(左\vert{}右))?(?:\Vert{}(.*?))?\]\]/g, (match, src, size, align, caption) => {
+    // 枠付き画像(thumb)の処理（ファイル名が空っぽでも、全角縦線でも反応するように強化）
+    html = html.replace(/\[\[[Ff][Ii][Ll][Ee]:\s*([^\vert{}｜\]]*)\s*[\Vert{}｜]\s*thumb\s*[\Vert{}｜]\s*(\d+px)(?:\s*[\Vert{}｜]\s*(左\vert{}右))?(?:\s*[\Vert{}｜]\s*(.*?))?\]\]/g, (match, src, size, align, caption) => {
         const floatClass = align === '左' ? 'tleft' : 'tright';
         const capHtml = caption ? `<div class="thumbcaption">${processInlineElements(caption)}</div>` : '';
-        return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
+        return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src.trim()}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
     });
     
     html = processInlineElements(html);
@@ -340,8 +348,8 @@ async function openEditor() {
 
     document.getElementById('btn-link').onclick = () => insertText("[[", "]]");
     document.getElementById('btn-extlink').onclick = () => insertText("[", " ]");
-    document.getElementById('btn-img').onclick = () => insertText("[[File:", "|thumb|250px|右|画像の説明文]]");
-    document.getElementById('btn-img-inline').onclick = () => insertText("[[File:", "|inline]]");
+    document.getElementById('btn-img').onclick = () => insertText("[[File:|thumb|250px|右|画像の説明文]]", "");
+    document.getElementById('btn-img-inline').onclick = () => insertText("[[File:|inline]]", "");
     document.getElementById('btn-h2').onclick = () => insertText("\n== ", " ==\n");
     document.getElementById('btn-h3').onclick = () => insertText("\n=== ", " ===\n");
     document.getElementById('btn-list').onclick = () => insertText("\n* ", "");
