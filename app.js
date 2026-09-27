@@ -47,7 +47,7 @@ function parseWikiText(text) {
     html = html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     html = html.replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/g, '<s>$1</s>');
     html = html.replace(/&lt;span style="color:\s*([^"]+);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
-    html = html.replace(/&lt;div class="colored-box" style="([^"]+)"&gt;(.*?)&lt;\/div&gt;/g, '<div class="colored-box" style="$1">$2</div>');
+    html = html.replace(/&lt;div class="colored-box" style="([^"]+)"&gt;([\s\S]*?)&lt;\/div&gt;/g, '<div class="colored-box" style="$1">$2</div>');
     html = html.replace(/&lt;br&gt;/g, '<br>');
 
     html = html.replace(/\{\{Infobox([\s\S]*?)\}\}/g, (match, p1) => {
@@ -145,9 +145,6 @@ function parseWikiText(text) {
         return table;
     });
 
-    // ▼▼▼ ここから修正箇所 ▼▼▼
-    // H3(===)とH2(==)を1回の正規表現パスで、本文中に出現する順番どおりに処理する。
-    // これにより tocList が H2→H3→H3→H2→H2... のように正しい順序で積まれる。
     const tocList = [];
     html = html.replace(/^(?:===(.*?)===|==(.*?)==)$/gm, (match, h3text, h2text) => {
         if (h3text !== undefined) {
@@ -160,7 +157,6 @@ function parseWikiText(text) {
             return `<h2 id="${id}">${processInlineElements(h2text)}</h2>`;
         }
     });
-    // ▲▲▲ ここまで修正箇所 ▲▲▲
 
     if (html.includes('__TOC__')) {
         if (tocList.length > 0) {
