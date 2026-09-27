@@ -35,8 +35,10 @@ async function fetchAllArticles() {
 
 function processInlineElements(text) {
     if (!text) return '';
+    // 画像の処理（\|を正しく認識させる）
     let processed = text.replace(/\[\[File:(.+?)\Vert{}inline\]\]/g, '<img src="$1" class="inline-image">');
-    processed = processed.replace(/\[\[(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
+    // 内部リンクの処理（ただし [[File:...]] はリンク化しないように除外）
+    processed = processed.replace(/\[\[(?!File:)(.*?)\]\]/g, '<a href="#" class="internal-link" data-target="$1">$1</a>');
     return processed;
 }
 
@@ -47,7 +49,9 @@ function parseWikiText(text) {
     html = html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     html = html.replace(/&lt;s&gt;(.*?)&lt;\/s&gt;/g, '<s>$1</s>');
     html = html.replace(/&lt;span style="color:\s*([^"]+);"&gt;(.*?)&lt;\/span&gt;/g, '<span style="color: $1;">$2</span>');
-    html = html.replace(/&lt;div class="colored-box" style="([^"]+)"&gt;(.*?)&lt;\/div&gt;/g, '<div class="colored-box" style="$1">$2</div>');
+    
+    // 色枠の処理（[\s\S]*? に変更して、改行を跨いで中身を認識できるように修正）
+    html = html.replace(/&lt;div class="colored-box" style="([^"]+)"&gt;([\s\S]*?)&lt;\/div&gt;/g, '<div class="colored-box" style="$1">$2</div>');
     html = html.replace(/&lt;br&gt;/g, '<br>');
 
     html = html.replace(/\{\{Infobox([\s\S]*?)\}\}/g, (match, p1) => {
@@ -147,16 +151,13 @@ function parseWikiText(text) {
         return table;
     });
 
+    // 目次と見出しの処理（上から順に処理するように一本化）
     const tocList = [];
-    html = html.replace(/^===(.*?)===$/gm, (match, p1) => {
-        const id = 'h3_' + Math.random().toString(36).substr(2, 9);
-        tocList.push({ level: 3, text: processInlineElements(p1.trim()), id: id });
-        return `<h3 id="${id}">${processInlineElements(p1)}</h3>`;
-    });
-    html = html.replace(/^==(.*?)==$/gm, (match, p1) => {
-        const id = 'h2_' + Math.random().toString(36).substr(2, 9);
-        tocList.push({ level: 2, text: processInlineElements(p1.trim()), id: id });
-        return `<h2 id="${id}">${processInlineElements(p1)}</h2>`;
+    html = html.replace(/^(={2,3})\s*(.*?)\s*\1/gm, (match, equals, p1) => {
+        const level = equals.length; // 2ならH2、3ならH3
+        const id = 'h' + level + '_' + Math.random().toString(36).substr(2, 9);
+        tocList.push({ level: level, text: processInlineElements(p1), id: id });
+        return `<h${level} id="${id}">${processInlineElements(p1)}</h${level}>`;
     });
 
     if (html.includes('__TOC__')) {
@@ -179,7 +180,8 @@ function parseWikiText(text) {
 
     html = html.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
     
-    html = html.replace(/\[\[File:([^\vert{}\]]+)\Vert{}thumb\Vert{}(\d+px)\Vert{}?(左\vert{}右)?\Vert{}?(.*?)\]\]/g, (match, src, size, align, caption) => {
+    // 枠付き画像(thumb)の処理（正規表現を修正）
+    html = html.replace(/\[\[File:([^\vert{}\]]+)\Vert{}thumb\Vert{}(\d+px)(?:\Vert{}(左\vert{}右))?(?:\Vert{}(.*?))?\]\]/g, (match, src, size, align, caption) => {
         const floatClass = align === '左' ? 'tleft' : 'tright';
         const capHtml = caption ? `<div class="thumbcaption">${processInlineElements(caption)}</div>` : '';
         return `<div class="thumb ${floatClass}" style="width:${parseInt(size)+8}px;"><div class="thumbinner" style="width:${size};"><img src="${src}" class="thumbimage" style="width:${size};">${capHtml}</div></div>`;
