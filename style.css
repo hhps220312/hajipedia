@@ -65,6 +65,7 @@ h3{font-weight:bold;margin-top:1.2em;overflow:hidden}
 .thumb{border:1px solid #c8ccd1;background-color:#f8f9fa;padding:3px;margin-bottom:0.5em}
 .tright{float:right;clear:right;margin-left:1.4em}
 .tleft{float:left;clear:left;margin-right:1.4em}
+.wikitable .thumb{float:none;clear:none;margin:0 auto}
 .thumbinner{border:1px solid #ccc;background-color:#fff;padding:1px}
 .thumbimage{border:1px solid #ccc;max-width:100%;height:auto}
 .thumbcaption{font-size:0.8em;line-height:1.4em;padding:3px;color:#222;text-align:left}
